@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30204.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genoctome", "Genoctome.csproj", "{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Izdelie14_07", "D:\Games\Data\Iz\Izdelie14_07\Izdelie14_07.vcxproj", "{31970FEF-D400-49D0-B708-C91609A5457A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|x64.Build.0 = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Debug|x86.Build.0 = Debug|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|x64.ActiveCfg = Release|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|x64.Build.0 = Release|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|x86.ActiveCfg = Release|Any CPU
+		{F559C622-C4F1-45E4-8FDA-AB89B1D56A56}.Release|x86.Build.0 = Release|Any CPU
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Debug|x64.ActiveCfg = Debug|x64
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Debug|x64.Build.0 = Debug|x64
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Debug|x86.ActiveCfg = Debug|Win32
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Debug|x86.Build.0 = Debug|Win32
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Release|Any CPU.ActiveCfg = Release|Win32
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Release|x64.ActiveCfg = Release|x64
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Release|x64.Build.0 = Release|x64
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Release|x86.ActiveCfg = Release|Win32
+		{31970FEF-D400-49D0-B708-C91609A5457A}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {69D0AE9F-5887-4597-AD70-2826696EEFC9}
+	EndGlobalSection
+EndGlobal
