@@ -48,6 +48,7 @@
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseGenoctome.cs" />

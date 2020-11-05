@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CSharp;
-
+using System.Windows;
 using Verse;
-using static Verse.HediffComp;
+using Verse.AI;
 
 namespace Genoctome
 {
@@ -25,7 +23,7 @@ namespace Genoctome
         }
         public class modifyer
         {
-            public float mod { get; set; } = 0;
+            public float mod = 0;
 
             public float percent(float total)
             {
@@ -53,8 +51,28 @@ namespace Genoctome
         }
         public abstract class perk
         {
-            public bool available, set;
+            public string name;
+            public bool available, ifSpliced;
+            public bool established
+            {
+                get
+                {
+                    return established;
+                }
+                set
+                {
+                    established = value;
+                    if (established && established != value) setMoment(ref owner);
+                }
+            }
 
+            public genoctome owner;
+            public perk bestly = null, addicted = null;
+
+            public virtual void setMoment(ref genoctome owner)
+            {
+
+            }
             public virtual void run(ref genoctome owner)
             {
                 
@@ -62,18 +80,81 @@ namespace Genoctome
         }
         public class perkBook
         {
+
             List<perk> _container = new List<perk>();
+            public perk selected;
             public genoctome owner;
 
 
-            public void add(perk perk, bool available, bool set)
+            /// <summary>
+            /// Добавляет в книгу навык, новый навык доступен в selected
+            /// </summary>
+            /// <param name="name">Название навыка</param>
+            /// <param name="perk">Инструкции навыка</param>
+            /// <param name="available">Доступно</param>
+            /// <param name="set">Установлено</param>
+            /// <param name="ifSpliced">Выполнять только при сращивании</param>
+            public void add(string name, perk perk, bool available, bool set, bool ifSpliced)
             {
                 _container.Add(perk);
+                _container[_container.Count - 1].name = name;
                 _container[_container.Count - 1].available = available;
-                _container[_container.Count - 1].set = set;
+                _container[_container.Count - 1].established = set;
+                _container[_container.Count - 1].ifSpliced = ifSpliced;
+                _container[_container.Count - 1].owner = owner;
+
+                selected = _container[_container.Count - 1];
             }
+            public bool select(string name)
+            {
+                foreach (perk element in _container)
+                {
+                    if (element.name == name)
+                    {
+                        selected = element;
+                        return true;
+                    }
+                }
 
+                return false;
+            }
+            /// <summary>
+            /// Сообщает selected-навыку другой лучший навык. Если лучший навык установлен, selected-навык не используется
+            /// </summary>
+            /// <param name="name">Имя лучшего навыка</param>
+            public bool setBest(string name)
+            {
+                foreach(perk perk in _container){
+                    
+                    if (perk.name == name)
+                    {
+                        selected.bestly = perk;
+                        return true;
+                    }
 
+                }
+
+                return false;
+            }
+            /// <summary>
+            /// Сообщает selected-навыку его зависимость от другого навыка. Если зависимость установлена, selected-навык не работает, пока не будет работать навык-источник зависимости.
+            /// </summary>
+            /// <param name="name">Имя навыка-источника зависимости</param>
+            /// <returns></returns>
+            public bool setAddict(string name)
+            {
+
+                foreach (perk perk in _container)
+                {
+                    if (perk.name == name)
+                    {
+                        selected.addicted = perk;
+                        return false;
+                    }
+                }
+
+                return false;
+            }
             public void run()
             {
                 if (owner == null)
@@ -83,16 +164,36 @@ namespace Genoctome
                 else
                     for (short i = 0; i < _container.Count(); i++)
                     {
-                        if (_container[i].available && _container[i].set) _container[i].run(ref owner);
+                        bool bestly = false;
+                        if (_container[i].bestly != null) bestly = _container[i].bestly.established;
+
+                        bool addicted = true;
+                        if (_container[i].addicted != null) addicted = _container[i].addicted.established;
+
+                        //Навык исполняется только если : установлен, соблюден крит-ий сращивания, лучший навык не установлен, удовлетворена зависимость
+                        if (
+                            _container[i].established &&
+                            _container[i].ifSpliced == owner.ifSpliced() &&
+
+                            !bestly && addicted
+                           ) 
+                            _container[i].run(ref owner);
                     }
             }
-
-
             public void report()
             {
-                foreach ( var sic in _container)
+                foreach (perk perk in _container)
                 {
-                    Log.Message( sic.GetType().ToString() );
+                    Log.Message(perk.name);
+                    Log.Message("    available:" + perk.available.ToString() + ", set:" + perk.established.ToString() + ", ifSpliced" + perk.ifSpliced.ToString());
+
+                    if (perk.bestly != null)
+                        Log.Message("        bestly:" + perk.bestly.name + ", set:" + perk.bestly.established.ToString());
+
+                    if (perk.addicted != null)
+                        Log.Message("        addicted:" + perk.addicted.name + ", set:" + perk.addicted.established.ToString());
+
+                    Log.Message("");
                 }
             }
         }
@@ -102,13 +203,14 @@ namespace Genoctome
 
             public int bestAge;
 
-            public generation generation;          //! К какому поколению относится Геноктом  -2 2 6 10 14
-             public modifyer gen;                  //! Модификатор влияния поколения
-            public serial serial;                  //! К какой индивидуальной серии относится Геноктом
+            public generation generation;               //! К какому поколению относится Геноктом  -2 2 6 10 14
+              public modifyer gen;                      //! Модификатор влияния поколения
+            public serial serial;                       //! К какой индивидуальной серии относится Геноктом
+              public specifications specifications;     //!
 
-            public Pawn Pawn;                      //! Пешка-носитель Геноктома
-            public perkBook perkBook;              //! Набор возможных навыков. Добавляйте навыки в HediffComp_Xxxx
-            public specifications specifications;  //!
+            public Pawn Pawn;                           //! Пешка-носитель Геноктома
+            public perkBook perkBook;                   //! Набор возможных навыков. Добавляйте навыки в HediffComp_Xxxx
+            
             
 
             public genoctome()
@@ -161,7 +263,10 @@ namespace Genoctome
                 Log.Message(" genoctom.init");
                 Init(Pawn);
 
+                Log.Message(" Splice");
                 Pawn.health.AddHediff(HediffDefOfLocal.Splice);
+
+                //IEnumerable<BodyPartRecord> bodyParts = Pawn.health.hediffSet.GetNotMissingParts();
             }
             public void inTick()
             {
@@ -184,6 +289,30 @@ namespace Genoctome
                 else Pawn.health.AddHediff(Hediff);
             }
 
+            static public bool hasHediff(Pawn Pawn, HediffDef hediff)
+            {
+                List<Hediff> hediffs = Pawn.health.hediffSet.hediffs;
+
+                for (short i = 0; i < hediffs.Count; i++)
+                {
+                    if (hediff.defName == hediffs[i].def.defName) return true;
+                }
+
+                return false;
+            }
+
+            static public bool hasHediff(Pawn Pawn, string tag)
+            {
+                List<Hediff> hediffs = Pawn.health.hediffSet.hediffs;
+
+                for (short i = 0; i < hediffs.Count; i++)
+                {
+                    if (ifTag(tag, hediffs[i].def.tags)) return true;
+                }
+
+                return false;
+            }
+
             //*Проверяет завешён ли процесс сращивания*//
             public bool ifSpliced()
             {
@@ -191,15 +320,63 @@ namespace Genoctome
             }
 
             //*Проверяет на естественность*//
-            public bool ifTag(string tag, List<string> tags)
+            static public bool ifTag(string tag, List<string> tags)
             {
+                //Если Лист не инициализиован, значит пуст - возвращаем false
+                if (tags == null) return false;
+
+                //Перебираем тэги на соответствие искомому
                 for (short i = 0; i < tags.Count; i++)
                 {
                     if (tags[i] == tag) return true;
                 }
 
+                //Если здесь, значит тэг не найден - false
                 return false;
             }
+            public BodyPartRecord getBodyPart(BodyPartDef bodyPart)
+            {
+
+                return null;
+            }
+
+            /*
+            public void sd()
+            {
+                
+            }
+
+            public class JobDriver_ShowDF : JobDriver {
+
+                public override bool TryMakePreToilReservations(bool errorOnFailed)
+                {
+                    Log.Message("Is it TryMakePreToilReservations");
+                    return true;
+                }
+
+                protected override IEnumerable<Toil> MakeNewToils()
+                {
+                    Log.Message("Is it MakeNewToils");
+                    if (job.targetA.Pawn == pawn && hasHediff(pawn, "Genoctome"))
+                    {
+                        Log.Message("    Check Target is true");
+                        Toil hui = new Toil();
+
+                        hui.actor = pawn;
+                        hui.initAction = new 
+                    }
+                }
+
+            }
+
+            public class perkWindow : Window
+            {
+                public override void DoWindowContents(UnityEngine.Rect inRect)
+                {
+
+                }
+            }*/
+
         }
 
     }

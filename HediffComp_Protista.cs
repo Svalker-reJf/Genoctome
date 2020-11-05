@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using RimWorld;
-using Verse;
+﻿using Verse;
 using static Genoctome.BaseGenoctome;
 
 namespace Genoctome
@@ -20,11 +14,10 @@ namespace Genoctome
 
         public override void CompPostPostAdd(DamageInfo? dinfo)
         {
-            Log.Message("Protista.Insert");
             gen.Insert(Pawn);
 
-            Log.Message("Protista.perkBook.add & report");
-            gen.perkBook.add(new perks.Nutriculiosis_perk(), true, true);
+            gen.perkBook.add("Nutr", new perks.Nutriculiosis_perk(), true, true, true);
+            gen.perkBook.add("PasReg", new perks.PassiveRegeneration_perk(), true, true, false);
             gen.perkBook.report();
         }
 
