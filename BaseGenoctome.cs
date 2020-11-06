@@ -53,26 +53,11 @@ namespace Genoctome
         {
             public string name;
             public bool available, ifSpliced;
-            public bool established
-            {
-                get
-                {
-                    return established;
-                }
-                set
-                {
-                    established = value;
-                    if (established && established != value) setMoment(ref owner);
-                }
-            }
+            public bool established;
 
-            public genoctome owner;
+
             public perk bestly = null, addicted = null;
 
-            public virtual void setMoment(ref genoctome owner)
-            {
-
-            }
             public virtual void run(ref genoctome owner)
             {
                 
@@ -92,16 +77,15 @@ namespace Genoctome
             /// <param name="name">Название навыка</param>
             /// <param name="perk">Инструкции навыка</param>
             /// <param name="available">Доступно</param>
-            /// <param name="set">Установлено</param>
+            /// <param name="established">Установлено</param>
             /// <param name="ifSpliced">Выполнять только при сращивании</param>
-            public void add(string name, perk perk, bool available, bool set, bool ifSpliced)
+            public void add(string name, perk perk, bool available, bool established, bool ifSpliced)
             {
                 _container.Add(perk);
                 _container[_container.Count - 1].name = name;
                 _container[_container.Count - 1].available = available;
-                _container[_container.Count - 1].established = set;
+                _container[_container.Count - 1].established = established;
                 _container[_container.Count - 1].ifSpliced = ifSpliced;
-                _container[_container.Count - 1].owner = owner;
 
                 selected = _container[_container.Count - 1];
             }
@@ -265,8 +249,6 @@ namespace Genoctome
 
                 Log.Message(" Splice");
                 Pawn.health.AddHediff(HediffDefOfLocal.Splice);
-
-                //IEnumerable<BodyPartRecord> bodyParts = Pawn.health.hediffSet.GetNotMissingParts();
             }
             public void inTick()
             {
@@ -311,6 +293,11 @@ namespace Genoctome
                 }
 
                 return false;
+            }
+
+            static public BodyPartRecord takeBodyPart()
+            {
+
             }
 
             //*Проверяет завешён ли процесс сращивания*//

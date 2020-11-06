@@ -55,13 +55,14 @@ namespace Genoctome
         }
         public class ConsusnessUp_perk : perk
         {
-            public override void setMoment(ref genoctome owner)
-            {
-                
-            }
             public override void run(ref genoctome owner)
             {
-                
+                if ()
+                {
+
+                }
+
+                //IEnumerable<BodyPartRecord> bodyParts = Pawn.health.hediffSet.GetNotMissingParts();
             }
         }
     }
