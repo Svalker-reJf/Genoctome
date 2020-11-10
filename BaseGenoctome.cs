@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using Verse;
 using Verse.AI;
@@ -53,14 +54,26 @@ namespace Genoctome
         {
             public string name;
             public bool available, ifSpliced;
-            public bool established;
-
+            private bool established;
 
             public perk bestly = null, addicted = null;
 
+            public bool getEstablished()
+            {
+                return established;
+            }
+            public void setEstablished(bool established, ref genoctome owner)
+            {
+                if (!this.established && established) enter(ref owner);
+                this.established = established;
+            }
+            public virtual void enter(ref genoctome owner)
+            {
+
+            }
             public virtual void run(ref genoctome owner)
             {
-                
+
             }
         }
         public class perkBook
@@ -84,7 +97,7 @@ namespace Genoctome
                 _container.Add(perk);
                 _container[_container.Count - 1].name = name;
                 _container[_container.Count - 1].available = available;
-                _container[_container.Count - 1].established = established;
+                _container[_container.Count - 1].setEstablished(established, ref owner);
                 _container[_container.Count - 1].ifSpliced = ifSpliced;
 
                 selected = _container[_container.Count - 1];
@@ -149,14 +162,14 @@ namespace Genoctome
                     for (short i = 0; i < _container.Count(); i++)
                     {
                         bool bestly = false;
-                        if (_container[i].bestly != null) bestly = _container[i].bestly.established;
+                        if (_container[i].bestly != null) bestly = _container[i].bestly.getEstablished();
 
                         bool addicted = true;
-                        if (_container[i].addicted != null) addicted = _container[i].addicted.established;
+                        if (_container[i].addicted != null) addicted = _container[i].addicted.getEstablished();
 
                         //Навык исполняется только если : установлен, соблюден крит-ий сращивания, лучший навык не установлен, удовлетворена зависимость
                         if (
-                            _container[i].established &&
+                            _container[i].getEstablished() &&
                             _container[i].ifSpliced == owner.ifSpliced() &&
 
                             !bestly && addicted
@@ -169,13 +182,13 @@ namespace Genoctome
                 foreach (perk perk in _container)
                 {
                     Log.Message(perk.name);
-                    Log.Message("    available:" + perk.available.ToString() + ", set:" + perk.established.ToString() + ", ifSpliced" + perk.ifSpliced.ToString());
+                    Log.Message("    available::" + perk.available.ToString() + ", established::" + perk.getEstablished().ToString() + ", ifSpliced::" + perk.ifSpliced.ToString());
 
                     if (perk.bestly != null)
-                        Log.Message("        bestly:" + perk.bestly.name + ", set:" + perk.bestly.established.ToString());
+                        Log.Message("        bestly::" + perk.bestly.name + ", set::" + perk.bestly.getEstablished().ToString());
 
                     if (perk.addicted != null)
-                        Log.Message("        addicted:" + perk.addicted.name + ", set:" + perk.addicted.established.ToString());
+                        Log.Message("        addicted::" + perk.addicted.name + ", set::" + perk.addicted.getEstablished().ToString());
 
                     Log.Message("");
                 }
@@ -295,9 +308,39 @@ namespace Genoctome
                 return false;
             }
 
-            static public BodyPartRecord takeBodyPart()
+            static public BodyPartRecord takeBodyPart(Pawn pawn, string defName)
             {
+                IEnumerable<BodyPartRecord> bodyParts = pawn.health.hediffSet.GetNotMissingParts();
 
+                foreach(BodyPartRecord bodyPart in bodyParts)
+                {
+                    if (bodyPart.def.defName == defName) return bodyPart;
+                }
+
+                Log.Message($"takeBodyPart({defName}) return null");
+                return null;
+            }
+            public static void copyTo(object donor, object recipient)
+            {
+                FieldInfo[] fieldsDonor = donor.GetType().GetFields();
+                FieldInfo[] fieldsRecep = recipient.GetType().GetFields();
+
+                for (int i = 0; i < fieldsDonor.Length; i++)
+                {
+                    if (fieldsRecep[i].Name == fieldsDonor[i].Name) fieldsRecep[i].SetValue(recipient, fieldsDonor[i].GetValue(donor));
+                }
+            }
+
+            static public Hediff_MissingPart takeMissingPart(Pawn pawn, string label)
+            {
+                List<Hediff_MissingPart> missingParts = pawn.health.hediffSet.GetMissingPartsCommonAncestors();
+
+                foreach (Hediff_MissingPart missingPart in missingParts)
+                {
+                    if (missingPart.def.label == label) return missingPart;
+                }
+
+                return null;
             }
 
             //*Проверяет завешён ли процесс сращивания*//

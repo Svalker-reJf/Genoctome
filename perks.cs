@@ -1,5 +1,7 @@
-﻿using System;
+﻿using RimWorld;
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Verse;
 using static Genoctome.BaseGenoctome;
 
@@ -57,13 +59,46 @@ namespace Genoctome
         {
             public override void run(ref genoctome owner)
             {
-                if ()
-                {
-
-                }
-
-                //IEnumerable<BodyPartRecord> bodyParts = Pawn.health.hediffSet.GetNotMissingParts();
+                
             }
         }
+        public class FatNeck_perk : perk
+        {
+            public override void enter(ref genoctome owner)
+            {
+                /*
+                Log.Message(genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints.ToString());
+                BodyPartDef donor = BodyPartDefOf.Neck;
+                BodyPartRecord parentRecipient = genoctome.takeBodyPart(owner.Pawn, "Neck");
+                Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
+                parentRecipient.def = new BodyPartDef();
+                Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
+
+                if (parentRecipient != null)
+                {
+                    genoctome.copyTo(donor, parentRecipient.def);
+                    Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
+                    parentRecipient.def.hitPoints += 12;
+                    Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
+                }*/
+                
+                RaceProperties buffer = new RaceProperties();
+                genoctome.copyTo(owner.Pawn.def.race, buffer);
+                    Log.Message("set buffer");
+
+                owner.Pawn.def.race = new RaceProperties();
+                    Log.Message("new race");
+
+                genoctome.copyTo(buffer, owner.Pawn.def.race);
+                    Log.Message("copy race");
+
+                genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
+                    Log.Message("change hitHoints");
+
+
+            }
+
+        }
+
     }
 }
