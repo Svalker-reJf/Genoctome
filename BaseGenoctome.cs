@@ -320,15 +320,59 @@ namespace Genoctome
                 Log.Message($"takeBodyPart({defName}) return null");
                 return null;
             }
-            public static void copyTo(object donor, object recipient)
+            /// <summary>
+            /// Копирует значения из одинаковых по имени полей от донора к реципиенту. Если донор и реципиент одинакового типа - все поля будут одинаковыми.
+            /// </summary>
+            /// <param name="donor">Объект-донор, откуда берутся значения.</param>
+            /// <param name="recipient">Объект-рципиент, куда копируются значения.</param>
+            /// <param name="deepCopy">Глубокое копирование, при котором, поля-объекты будут равны не ссылке на донорское поле, а инициализироваться и копировать данные из донорского поля.</param>
+            public static void copyTo(object donor, object recipient, bool deepCopy = false)
             {
                 FieldInfo[] fieldsDonor = donor.GetType().GetFields();
-                FieldInfo[] fieldsRecep = recipient.GetType().GetFields();
+                FieldInfo[] fieldsRecip = recipient.GetType().GetFields();
+
+                FieldInfo buffer;
 
                 for (int i = 0; i < fieldsDonor.Length; i++)
                 {
-                    if (fieldsRecep[i].Name == fieldsDonor[i].Name) fieldsRecep[i].SetValue(recipient, fieldsDonor[i].GetValue(donor));
+
+                    buffer = findByName(fieldsDonor[i], fieldsRecip);
+                    if (buffer != null) buffer.SetValue(recipient, fieldsDonor[i].GetValue(donor));
+
+                    if (deepCopy)
+                    {
+                        if (buffer.FieldType.IsClass)
+                        {
+
+                            ConstructorInfo[] constructors = buffer.FieldType.GetConstructors();
+
+                            foreach (ConstructorInfo constructor in constructors)
+                            {
+                                if (constructor.GetParameters().Length == 0)
+                                {
+                                    buffer.SetValue(recipient, constructor.Invoke(null));
+                                    copyTo(fieldsDonor[i].GetValue(donor), buffer.GetValue(recipient), deepCopy);
+                                    break; //Console.WriteLine($"for {buffer.FieldType} not default constructor");
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+            public static FieldInfo findByName(FieldInfo field, FieldInfo[] fields, string report = null)
+            {
+                foreach (FieldInfo pointer in fields)
+                {
+                    if (field.Name == pointer.Name) return (pointer);
+                }
+
+                if (report != null)
+                {
+                    report = "findByName::not found";
+                    if (field == null) report += " findByName::field == null";
+                    if (fields == null || fields.Length == 0) report += " findByName::fields == null or fields.Leight() == 0";
+                }
+                return null;
             }
 
             static public Hediff_MissingPart takeMissingPart(Pawn pawn, string label)
