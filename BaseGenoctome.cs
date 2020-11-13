@@ -288,7 +288,7 @@ namespace Genoctome
             {
                 List<Hediff> hediffs = Pawn.health.hediffSet.hediffs;
 
-                for (short i = 0; i < hediffs.Count; i++)
+                for (short i = 0; i < hediffs.Count; ++i)
                 {
                     if (hediff.defName == hediffs[i].def.defName) return true;
                 }
@@ -300,7 +300,7 @@ namespace Genoctome
             {
                 List<Hediff> hediffs = Pawn.health.hediffSet.hediffs;
 
-                for (short i = 0; i < hediffs.Count; i++)
+                for (short i = 0; i < hediffs.Count; ++i)
                 {
                     if (ifTag(tag, hediffs[i].def.tags)) return true;
                 }
@@ -320,45 +320,177 @@ namespace Genoctome
                 Log.Message($"takeBodyPart({defName}) return null");
                 return null;
             }
+            
+
             /// <summary>
             /// Копирует значения из одинаковых по имени полей от донора к реципиенту. Если донор и реципиент одинакового типа - все поля будут одинаковыми.
             /// </summary>
             /// <param name="donor">Объект-донор, откуда берутся значения.</param>
-            /// <param name="recipient">Объект-рципиент, куда копируются значения.</param>
+            /// <param name="recipient">Объект-реципиент, куда копируются значения.</param>
             /// <param name="deepCopy">Глубокое копирование, при котором, поля-объекты будут равны не ссылке на донорское поле, а инициализироваться и копировать данные из донорского поля.</param>
             public static void copyTo(object donor, object recipient, bool deepCopy = false)
             {
+                //Наборы полей от обоих субъктов и буффер для рассматриваемого поля-реципиента. 
                 FieldInfo[] fieldsDonor = donor.GetType().GetFields();
                 FieldInfo[] fieldsRecip = recipient.GetType().GetFields();
 
-                FieldInfo buffer;
-
-                for (int i = 0; i < fieldsDonor.Length; i++)
+                for (int i = 0; i < fieldsDonor.Length; ++i)
                 {
+                    fieldsRecip[i].SetValue(recipient, fieldsDonor[i].GetValue(donor));
 
-                    buffer = findByName(fieldsDonor[i], fieldsRecip);
-                    if (buffer != null) buffer.SetValue(recipient, fieldsDonor[i].GetValue(donor));
-
-                    if (deepCopy)
+                    if (fieldsRecip[i].FieldType.IsClass && deepCopy)
                     {
-                        if (buffer.FieldType.IsClass)
+                        if (fieldsRecip[i].FieldType.IsArray)
                         {
-
-                            ConstructorInfo[] constructors = buffer.FieldType.GetConstructors();
-
-                            foreach (ConstructorInfo constructor in constructors)
+                            if (fieldsDonor[i].GetValue(donor) != null)
                             {
-                                if (constructor.GetParameters().Length == 0)
+                                //Берём копию массива-донора, набор конструкторов, назначаем параметры для массива-реципиента(это размер массива-донора),
+                                //берем первый же массив(у массивов один конструктор) и вызываем его, зарание переводя в мета-класс(Array)
+                                Array arrayDonor = (Array)fieldsDonor[i].GetValue(donor);
+                                ConstructorInfo[] constructors = fieldsRecip[i].FieldType.GetConstructors();
+
+                                object[] param = new object[1] { arrayDonor.Length };
+                                fieldsRecip[i].SetValue(recipient, (Array)constructors[0].Invoke(param));
+
+                                //Выбираем новообъявленный массив-реципиент, и в цикле заполняем его из донора. Если тип ячейки простой, заполняем сразу,
+                                //в противном - вызываем для переноса copyTo
+                                Array arrayRecip = (Array)fieldsRecip[i].GetValue(recipient);
+
+                                for (int m = 0; m < arrayDonor.Length; ++m)
                                 {
-                                    buffer.SetValue(recipient, constructor.Invoke(null));
-                                    copyTo(fieldsDonor[i].GetValue(donor), buffer.GetValue(recipient), deepCopy);
-                                    break; //Console.WriteLine($"for {buffer.FieldType} not default constructor");
+                                    if (arrayDonor.GetValue(m).GetType().IsValueType)
+                                        arrayRecip.SetValue(arrayDonor.GetValue(m), m);
+                                    else copyTo(arrayDonor.GetValue(m), arrayRecip.GetValue(m));
                                 }
                             }
+                            else fieldsRecip[i].SetValue(recipient, null);
+                        }
+                        else
+                        {
+                            if (fieldsDonor[i].GetValue(donor) != null)
+                            {
+                                ConstructorInfo[] constructors = fieldsRecip[i].FieldType.GetConstructors();
+
+                                foreach (ConstructorInfo constructor in constructors)
+                                {
+                                    if (constructor.GetParameters().Length == 0)
+                                    {
+                                        fieldsRecip[i].SetValue(recipient, constructor.Invoke(null));
+                                        copyTo(fieldsDonor[i].GetValue(donor), fieldsRecip[i].GetValue(recipient), deepCopy);
+                                        break; //Console.WriteLine($"for {buffer.FieldType} not default constructor");
+                                    }
+                                }
+                            }
+                            else fieldsRecip[i].SetValue(recipient, null);
                         }
                     }
                 }
             }
+
+            /// <summary>
+            /// Сравнивает два объекта на схожесть. Объекты должны быль одинакового типа.
+            /// </summary>
+            /// <param name="frst"></param>
+            /// <param name="scnd"></param>
+            /// <returns></returns>
+            public static bool equal(object frst, object scnd)
+            {
+                if (frst.GetType() == scnd.GetType())
+                {
+                    if (frst.GetType().IsValueType)
+                        return isValueType(frst, scnd);
+
+                    if (frst.GetType().IsArray)
+                        return isArray(frst, scnd);
+
+                    if (frst.GetType().IsClass)
+                        return isClass(frst, scnd);
+                }
+
+                return false;
+            }
+            public static bool isValueType(object frst, object scnd)
+            {
+                if (!frst.Equals(scnd)) return false;
+
+                return true;
+            }
+            public static bool isArray(object frst, object scnd)
+            {
+                Array arrayFrst = (Array)frst;
+                Array arrayScnd = (Array)scnd;
+
+                for (int o = 0; o < arrayFrst.Length; ++o)
+                {
+                    if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o))) return false;
+                }
+
+                return true;
+            }
+            public static bool isClass(object frst, object scnd)
+            {
+                if (frst == null && scnd == null) return true;
+
+                FieldInfo[] infoFrst = frst.GetType().GetFields();
+                FieldInfo[] infoScnd = scnd.GetType().GetFields();
+
+                for (int i = 0; i < infoFrst.Length; ++i)
+                {
+                    if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd))) return false;
+                }
+
+                return true;
+            }
+
+            public static void reportEqual(object frst, object scnd)
+            {
+                if (frst.GetType() == scnd.GetType())
+                {
+                    if (frst.GetType().IsValueType && !isValueType(frst, scnd))
+                        reportValueType(frst, scnd);
+
+                    if (frst.GetType().IsArray && !isArray(frst, scnd))
+                        reportArray(frst, scnd);
+
+                    if (frst.GetType().IsClass && !frst.GetType().IsArray && !isClass(frst, scnd))
+                        reportClass(frst, scnd);
+                }
+            }
+            public static void reportValueType(object frst, object scnd)
+            {
+                Console.WriteLine($" {frst} != {scnd}");
+            }
+            public static void reportArray(object frst, object scnd)
+            {
+                Array arrayFrst = (Array)frst;
+                Array arrayScnd = (Array)scnd;
+
+                for (int o = 0; o < arrayFrst.Length; ++o)
+                {
+                    if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o)))
+                    {
+                        Console.Write($"[{o}]");
+                        reportEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o));
+                    }
+                }
+            }
+            public static void reportClass(object frst, object scnd)
+            {
+
+                FieldInfo[] infoFrst = frst.GetType().GetFields();
+                FieldInfo[] infoScnd = scnd.GetType().GetFields();
+
+                for (int i = 0; i < infoFrst.Length; ++i)
+                {
+                    if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd)))
+                    {
+                        Console.Write($"{infoFrst[i].Name}");
+                        reportEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd));
+                    }
+                }
+            }
+
+
             public static FieldInfo findByName(FieldInfo field, FieldInfo[] fields, string report = null)
             {
                 foreach (FieldInfo pointer in fields)
@@ -373,6 +505,78 @@ namespace Genoctome
                     if (fields == null || fields.Length == 0) report += " findByName::fields == null or fields.Leight() == 0";
                 }
                 return null;
+            }
+            /// <summary>
+            /// Выводит в консоль публичные поля объекта. 
+            /// </summary>
+            /// <param name="reporting">Рассматриваемый объект.</param>
+            /// <param name="repeats">Количество отступов("  ").</param>
+            public static void report(object reporting, MethodInfo speakerMethod = null, int repeats = 0)
+            {
+
+                FieldInfo[] fields = reporting.GetType().GetFields();
+
+                for (int i = 0; i < fields.Length; ++i)
+                {
+                    if (fields[i].FieldType.IsValueType)
+                        Console.WriteLine($"{getIndent(repeats)}{fields[i].FieldType.Name} {fields[i].Name} = {fields[i].GetValue(reporting)} ");
+
+                    if (fields[i].FieldType.IsClass)
+                    {
+                        if (fields[i].GetValue(reporting) == null)
+                            Console.WriteLine($"{getIndent(repeats)}{fields[i].FieldType.Name} {fields[i].Name} = null");
+
+                        if (fields[i].FieldType.IsArray)
+                        {
+                            Array array = (Array)fields[i].GetValue(reporting);
+
+                            Console.WriteLine();
+                            Console.WriteLine($"{fields[i].FieldType.GetElementType()}[{array.Length}] {fields[i].Name}");
+                            Console.WriteLine("[");
+
+                            arrayContent(array, speakerMethod, repeats + 1);
+
+                            Console.WriteLine("]");
+                        }
+                        else
+                        if (fields[i].GetValue(reporting) != null)
+                        {
+
+                            Console.WriteLine();
+                            Console.WriteLine($"{fields[i].FieldType.Name} {fields[i].Name}");
+                            Console.WriteLine("{");
+
+                            report(fields[i].GetValue(reporting), speakerMethod, repeats + 1);
+
+                            Console.WriteLine("}");
+                        }
+                    }
+                }
+            }
+            public static void callSpeaker(string speak)
+            {
+                Console.WriteLine(speak);
+            }
+            public static void arrayContent(Array array, MethodInfo speakerMethod, int repeats)
+            {
+                for (int a = 0; a < array.Length; ++a)
+                {
+                    var element = array.GetValue(a);
+                    if (element.GetType().IsValueType)
+                        Console.WriteLine($"{getIndent(repeats)}{a} {element.GetType().Name} = {element} ");
+                    else report(array.GetValue(a), speakerMethod, repeats + 1);
+                }
+            }
+            public static string getIndent(int repeats)
+            {
+                string indent = "";
+
+                for (int i = repeats; i != 0; i--)
+                {
+                    indent += "  ";
+                }
+
+                return indent;
             }
 
             static public Hediff_MissingPart takeMissingPart(Pawn pawn, string label)
@@ -400,7 +604,7 @@ namespace Genoctome
                 if (tags == null) return false;
 
                 //Перебираем тэги на соответствие искомому
-                for (short i = 0; i < tags.Count; i++)
+                for (short i = 0; i < tags.Count; ++i)
                 {
                     if (tags[i] == tag) return true;
                 }

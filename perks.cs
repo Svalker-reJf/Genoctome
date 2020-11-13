@@ -47,7 +47,7 @@ namespace Genoctome
         {
             public override void run(ref genoctome owner) 
             {
-                for (short i = 0; i < owner.Pawn.health.hediffSet.hediffs.Count; i++)
+                for (short i = 0; i < owner.Pawn.health.hediffSet.hediffs.Count; ++i)
                 {
                     Hediff hediff = owner.Pawn.health.hediffSet.hediffs[i];
                     
@@ -81,16 +81,17 @@ namespace Genoctome
                     parentRecipient.def.hitPoints += 12;
                     Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
                 }*/
-                
-                RaceProperties buffer = new RaceProperties();
-                genoctome.copyTo(owner.Pawn.def.race, buffer);
+
+                ThingDef buffer = new ThingDef();
+                //Log.Message(owner.Pawn.def.GetType().ToString());
+                genoctome.copyTo(owner.Pawn.def, buffer, true);
                     Log.Message("set buffer");
 
-                owner.Pawn.def.race = new RaceProperties();
-                    Log.Message("new race");
+                owner.Pawn.def = new ThingDef();
+                    Log.Message("new ThingDef");
 
-                genoctome.copyTo(buffer, owner.Pawn.def.race);
-                    Log.Message("copy race");
+                genoctome.copyTo(buffer, owner.Pawn.def, true);
+                    Log.Message("copy ThingDef");
 
                 genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
                     Log.Message("change hitHoints");
