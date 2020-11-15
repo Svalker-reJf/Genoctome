@@ -320,176 +320,6 @@ namespace Genoctome
                 Log.Message($"takeBodyPart({defName}) return null");
                 return null;
             }
-            
-
-            /// <summary>
-            /// Копирует значения из одинаковых по имени полей от донора к реципиенту. Если донор и реципиент одинакового типа - все поля будут одинаковыми.
-            /// </summary>
-            /// <param name="donor">Объект-донор, откуда берутся значения.</param>
-            /// <param name="recipient">Объект-реципиент, куда копируются значения.</param>
-            /// <param name="deepCopy">Глубокое копирование, при котором, поля-объекты будут равны не ссылке на донорское поле, а инициализироваться и копировать данные из донорского поля.</param>
-            public static void copyTo(object donor, object recipient, bool deepCopy = false)
-            {
-                //Наборы полей от обоих субъктов и буффер для рассматриваемого поля-реципиента. 
-                FieldInfo[] fieldsDonor = donor.GetType().GetFields();
-                FieldInfo[] fieldsRecip = recipient.GetType().GetFields();
-
-                for (int i = 0; i < fieldsDonor.Length; ++i)
-                {
-                    fieldsRecip[i].SetValue(recipient, fieldsDonor[i].GetValue(donor));
-
-                    if (fieldsRecip[i].FieldType.IsClass && deepCopy)
-                    {
-                        if (fieldsRecip[i].FieldType.IsArray)
-                        {
-                            if (fieldsDonor[i].GetValue(donor) != null)
-                            {
-                                //Берём копию массива-донора, набор конструкторов, назначаем параметры для массива-реципиента(это размер массива-донора),
-                                //берем первый же массив(у массивов один конструктор) и вызываем его, зарание переводя в мета-класс(Array)
-                                Array arrayDonor = (Array)fieldsDonor[i].GetValue(donor);
-                                ConstructorInfo[] constructors = fieldsRecip[i].FieldType.GetConstructors();
-
-                                object[] param = new object[1] { arrayDonor.Length };
-                                fieldsRecip[i].SetValue(recipient, (Array)constructors[0].Invoke(param));
-
-                                //Выбираем новообъявленный массив-реципиент, и в цикле заполняем его из донора. Если тип ячейки простой, заполняем сразу,
-                                //в противном - вызываем для переноса copyTo
-                                Array arrayRecip = (Array)fieldsRecip[i].GetValue(recipient);
-
-                                for (int m = 0; m < arrayDonor.Length; ++m)
-                                {
-                                    if (arrayDonor.GetValue(m).GetType().IsValueType)
-                                        arrayRecip.SetValue(arrayDonor.GetValue(m), m);
-                                    else copyTo(arrayDonor.GetValue(m), arrayRecip.GetValue(m));
-                                }
-                            }
-                            else fieldsRecip[i].SetValue(recipient, null);
-                        }
-                        else
-                        {
-                            if (fieldsDonor[i].GetValue(donor) != null)
-                            {
-                                ConstructorInfo[] constructors = fieldsRecip[i].FieldType.GetConstructors();
-
-                                foreach (ConstructorInfo constructor in constructors)
-                                {
-                                    if (constructor.GetParameters().Length == 0)
-                                    {
-                                        fieldsRecip[i].SetValue(recipient, constructor.Invoke(null));
-                                        copyTo(fieldsDonor[i].GetValue(donor), fieldsRecip[i].GetValue(recipient), deepCopy);
-                                        break; //Console.WriteLine($"for {buffer.FieldType} not default constructor");
-                                    }
-                                }
-                            }
-                            else fieldsRecip[i].SetValue(recipient, null);
-                        }
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Сравнивает два объекта на схожесть. Объекты должны быль одинакового типа.
-            /// </summary>
-            /// <param name="frst"></param>
-            /// <param name="scnd"></param>
-            /// <returns></returns>
-            public static bool equal(object frst, object scnd)
-            {
-                if (frst.GetType() == scnd.GetType())
-                {
-                    if (frst.GetType().IsValueType)
-                        return isValueType(frst, scnd);
-
-                    if (frst.GetType().IsArray)
-                        return isArray(frst, scnd);
-
-                    if (frst.GetType().IsClass)
-                        return isClass(frst, scnd);
-                }
-
-                return false;
-            }
-            public static bool isValueType(object frst, object scnd)
-            {
-                if (!frst.Equals(scnd)) return false;
-
-                return true;
-            }
-            public static bool isArray(object frst, object scnd)
-            {
-                Array arrayFrst = (Array)frst;
-                Array arrayScnd = (Array)scnd;
-
-                for (int o = 0; o < arrayFrst.Length; ++o)
-                {
-                    if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o))) return false;
-                }
-
-                return true;
-            }
-            public static bool isClass(object frst, object scnd)
-            {
-                if (frst == null && scnd == null) return true;
-
-                FieldInfo[] infoFrst = frst.GetType().GetFields();
-                FieldInfo[] infoScnd = scnd.GetType().GetFields();
-
-                for (int i = 0; i < infoFrst.Length; ++i)
-                {
-                    if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd))) return false;
-                }
-
-                return true;
-            }
-
-            public static void reportEqual(object frst, object scnd)
-            {
-                if (frst.GetType() == scnd.GetType())
-                {
-                    if (frst.GetType().IsValueType && !isValueType(frst, scnd))
-                        reportValueType(frst, scnd);
-
-                    if (frst.GetType().IsArray && !isArray(frst, scnd))
-                        reportArray(frst, scnd);
-
-                    if (frst.GetType().IsClass && !frst.GetType().IsArray && !isClass(frst, scnd))
-                        reportClass(frst, scnd);
-                }
-            }
-            public static void reportValueType(object frst, object scnd)
-            {
-                Console.WriteLine($" {frst} != {scnd}");
-            }
-            public static void reportArray(object frst, object scnd)
-            {
-                Array arrayFrst = (Array)frst;
-                Array arrayScnd = (Array)scnd;
-
-                for (int o = 0; o < arrayFrst.Length; ++o)
-                {
-                    if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o)))
-                    {
-                        Console.Write($"[{o}]");
-                        reportEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o));
-                    }
-                }
-            }
-            public static void reportClass(object frst, object scnd)
-            {
-
-                FieldInfo[] infoFrst = frst.GetType().GetFields();
-                FieldInfo[] infoScnd = scnd.GetType().GetFields();
-
-                for (int i = 0; i < infoFrst.Length; ++i)
-                {
-                    if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd)))
-                    {
-                        Console.Write($"{infoFrst[i].Name}");
-                        reportEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd));
-                    }
-                }
-            }
-
 
             public static FieldInfo findByName(FieldInfo field, FieldInfo[] fields, string report = null)
             {
@@ -657,5 +487,192 @@ namespace Genoctome
 
         }
 
+        /// <summary>
+        /// Копирует значения из одинаковых по имени полей от донора к реципиенту. Если донор и реципиент одинакового типа - все поля будут одинаковыми.
+        /// </summary>
+        /// <param name="donor">Объект-донор, откуда берутся значения.</param>
+        /// <param name="recipient">Объект-реципиент, куда копируются значения.</param>
+        /// <param name="deepCopy">Глубокое копирование, при котором, поля-объекты будут равны не ссылке на донорское поле, а инициализироваться и копировать данные из донорского поля.</param>
+        public static void copyTo<type>(ref type donor, ref type recipient, bool deepCopy = false)
+        {
+            if (donor.GetType().IsValueType)
+                copyValue(ref donor, ref recipient);
+
+            if (donor.GetType().IsArray)
+                copyArray(ref donor, ref recipient, deepCopy);
+
+            if (donor.GetType().IsClass && !donor.GetType().IsArray)
+                copyClass(ref donor, ref recipient, deepCopy);
+        }
+        public static void copyValue<type>(ref type donor, ref type recipient)
+        {
+            recipient = donor;
+        }
+        public static void copyArray<type>(ref type donor, ref type recipient, bool deepCopy = false)
+        {
+            recipient = donor;
+
+            if (deepCopy)
+            {
+
+                Array donorArray = (Array)(object)donor;
+
+                ConstructorInfo[] constructors = recipient.GetType().GetConstructors();
+                recipient = (type)constructors[0].Invoke(new object[] { donorArray.Length });
+
+                Array donorRecip = (Array)(object)recipient;
+
+                for (int i = 0; i < donorArray.Length; ++i)
+                {
+                    object shadow_d = donorArray.GetValue(i);
+                    object shadow_r = donorRecip.GetValue(i);
+
+                    copyTo(ref shadow_d, ref shadow_r, deepCopy);
+
+                    donorRecip.SetValue(shadow_r, i);
+                }
+
+                recipient = (type)(object)donorRecip;
+            }
+        }
+        public static void copyClass<type>(ref type donor, ref type recipient, bool deepCopy = false)
+        {
+            recipient = donor;
+
+            if (deepCopy)
+            {
+                if (donor != null)
+                {
+                    ConstructorInfo[] constructors = recipient.GetType().GetConstructors();
+
+                    foreach (ConstructorInfo constructor in constructors)
+                    {
+                        if (constructor.GetParameters().Length == 0)
+                        {
+                            recipient = (type)constructor.Invoke(null);
+                            break;
+                        }
+                    }
+
+                    FieldInfo[] fieldsDonor = donor.GetType().GetFields();
+                    FieldInfo[] fieldsRecip = recipient.GetType().GetFields();
+
+                    for (int i = 0; i < fieldsDonor.Length; ++i)
+                    {
+                        object shadow_d = fieldsDonor[i].GetValue(donor);
+                        object shadow_r = fieldsRecip[i].GetValue(recipient);
+                            Log.Message($"{fieldsDonor[i].FieldType} {fieldsDonor[i].Name}");
+                        copyTo(ref shadow_d, ref shadow_r, deepCopy);
+
+                        fieldsRecip[i].SetValue(recipient, shadow_r);
+                    }
+                }
+                else
+                    recipient = default(type);
+            }
+        }
+
+        /// <summary>
+        /// Сравнивает два объекта на схожесть. Объекты должны быль одинакового типа.
+        /// </summary>
+        /// <param name="frst"></param>
+        /// <param name="scnd"></param>
+        /// <returns></returns>
+        public static bool equal(object frst, object scnd)
+        {
+            if (frst.GetType() == scnd.GetType())
+            {
+                if (frst.GetType().IsValueType)
+                    return isValueType(frst, scnd);
+
+                if (frst.GetType().IsArray)
+                    return isArray(frst, scnd);
+
+                if (frst.GetType().IsClass)
+                    return isClass(frst, scnd);
+            }
+
+            return false;
+        }
+        public static bool isValueType(object frst, object scnd)
+        {
+            if (!frst.Equals(scnd)) return false;
+
+            return true;
+        }
+        public static bool isArray(object frst, object scnd)
+        {
+            Array arrayFrst = (Array)frst;
+            Array arrayScnd = (Array)scnd;
+
+            for (int o = 0; o < arrayFrst.Length; ++o)
+            {
+                if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o))) return false;
+            }
+
+            return true;
+        }
+        public static bool isClass(object frst, object scnd)
+        {
+            if (frst == null && scnd == null) return true;
+
+            FieldInfo[] infoFrst = frst.GetType().GetFields();
+            FieldInfo[] infoScnd = scnd.GetType().GetFields();
+
+            for (int i = 0; i < infoFrst.Length; ++i)
+            {
+                if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd))) return false;
+            }
+
+            return true;
+        }
+
+        public static void reportEqual(object frst, object scnd)
+        {
+            if (frst.GetType() == scnd.GetType())
+            {
+                if (frst.GetType().IsValueType && !isValueType(frst, scnd))
+                    reportValueType(frst, scnd);
+
+                if (frst.GetType().IsArray && !isArray(frst, scnd))
+                    reportArray(frst, scnd);
+
+                if (frst.GetType().IsClass && !frst.GetType().IsArray && !isClass(frst, scnd))
+                    reportClass(frst, scnd);
+            }
+        }
+        public static void reportValueType(object frst, object scnd)
+        {
+            Console.WriteLine($" {frst} != {scnd}");
+        }
+        public static void reportArray(object frst, object scnd)
+        {
+            Array arrayFrst = (Array)frst;
+            Array arrayScnd = (Array)scnd;
+
+            for (int o = 0; o < arrayFrst.Length; ++o)
+            {
+                if (!equal(arrayFrst.GetValue(o), arrayScnd.GetValue(o)))
+                {
+                    Console.Write($"[{o}]");
+                    reportEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o));
+                }
+            }
+        }
+        public static void reportClass(object frst, object scnd)
+        {
+
+            FieldInfo[] infoFrst = frst.GetType().GetFields();
+            FieldInfo[] infoScnd = scnd.GetType().GetFields();
+
+            for (int i = 0; i < infoFrst.Length; ++i)
+            {
+                if (!equal(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd)))
+                {
+                    Console.Write($"{infoFrst[i].Name}");
+                    reportEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd));
+                }
+            }
+        }
     }
 }

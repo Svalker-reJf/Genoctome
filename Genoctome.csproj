@@ -52,7 +52,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseGenoctome.cs" />
-    <Compile Include="Genoctome.cs" />
     <Compile Include="genoctoms.cs" />
     <Compile Include="HediffCompProperties_Protista.cs" />
     <Compile Include="HediffComp_Protista.cs" />

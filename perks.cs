@@ -82,15 +82,15 @@ namespace Genoctome
                     Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
                 }*/
 
-                ThingDef buffer = new ThingDef();
-                //Log.Message(owner.Pawn.def.GetType().ToString());
-                genoctome.copyTo(owner.Pawn.def, buffer, true);
+                Log.Message($"type def is {owner.Pawn.def.GetType().Name}");
+                ThingDef buffer = null;
+                
+                copyTo(ref owner.Pawn.def, ref buffer, true);
                     Log.Message("set buffer");
 
-                owner.Pawn.def = new ThingDef();
                     Log.Message("new ThingDef");
 
-                genoctome.copyTo(buffer, owner.Pawn.def, true);
+                copyTo(ref buffer, ref owner.Pawn.def, true);
                     Log.Message("copy ThingDef");
 
                 genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
