@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Verse;
 using static Genoctome.BaseGenoctome;
+using static Iz14_07.reflection;
 
 namespace Genoctome
 {
@@ -82,15 +83,17 @@ namespace Genoctome
                     Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
                 }*/
 
+                speaker_withLog speaker = new speaker_withLog();
+
                 Log.Message($"type def is {owner.Pawn.def.GetType().Name}");
                 ThingDef buffer = null;
                 
-                copyTo(ref owner.Pawn.def, ref buffer, true);
+                copyTo(ref owner.Pawn.def, ref buffer, true, speaker);
                     Log.Message("set buffer");
 
                     Log.Message("new ThingDef");
 
-                copyTo(ref buffer, ref owner.Pawn.def, true);
+                copyTo(ref buffer, ref owner.Pawn.def, true, speaker);
                     Log.Message("copy ThingDef");
 
                 genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
