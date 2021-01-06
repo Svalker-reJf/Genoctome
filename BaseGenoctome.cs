@@ -1,23 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows;
 using Verse;
-using Verse.AI;
-using static Iz14_07.reflection;
 
 namespace Genoctome
 {
     public class BaseGenoctome
     {
-        public class speaker_withLog : speaker 
+        public class speaker_withLog : reflection.speaker 
         {
+            log logger = null;
+
+            public speaker_withLog() { }
+            public speaker_withLog(log logger)
+            {
+                this.logger = logger;
+            }
+
             public override void speak(string text)
             {
                 Log.Message(text);
+                if (logger != null) logger.write(text);
             }
-        } 
+        }
         public class specifications
         {
             //! Способность геноктома выполнять задачи :
@@ -494,5 +501,421 @@ namespace Genoctome
             }*/
 
         }
+        public class reflection
+        {
+            /// <summary>
+            /// Копирует значения из одинаковых по имени полей от донора к реципиенту. Если донор и реципиент одинакового типа - все поля будут одинаковыми.
+            /// </summary>
+            /// <param name="donor">Объект-донор, откуда берутся значения.</param>
+            /// <param name="recipient">Объект-реципиент, куда копируются значения.</param>
+            /// <param name="deepCopy">Глубокое копирование, при котором, поля-объекты будут равны не ссылке на донорское поле, а инициализироваться и копировать данные из донорского поля.</param>
+            public static void copyTo<type>(ref type donor, ref type recipient, bool deepCopy = false, speaker speaker = null, bool copyPrivate = false, exeption exeption = null)
+            {
+                if (donor != null) 
+                {
+                    if (donor.GetType().IsValueType || donor.GetType().Name == "String")
+                        copyValue(ref donor, ref recipient, speaker, copyPrivate, exeption);
+                    else
+                    if (donor.GetType().IsArray)
+                        copyArray(ref donor, ref recipient, deepCopy, speaker, copyPrivate, exeption);
+                    else
+                    if (donor.GetType().IsClass)
+                        copyClass(ref donor, ref recipient, deepCopy, speaker, copyPrivate, exeption);
+                }
+                else 
+                    recipient = default(type);
+
+            }
+            static void copyValue<type>(ref type donor, ref type recipient, speaker speaker = null, bool copyPrivate = false, exeption exeption = null)
+            {
+                if (exeption != null && exeption.isExeption(recipient.GetType(), null))
+                {
+                    if (speaker != null) speaker.speak($"    {recipient.GetType()} is exeption");
+                }
+                else
+                {
+                    if (speaker != null)
+                    {
+                        speaker.speak($"    {recipient} = {donor}");
+                        speaker.speak("");
+                    }
+
+                    recipient = donor;
+
+                    if (!isEqual(recipient, donor) && speaker != null) speaker.speak($"    {recipient.GetType()} not copy {donor.GetType()}");
+                }
+            }
+            static void copyArray<type>(ref type donor, ref type recipient, bool deepCopy = false, speaker speaker = null, bool copyPrivate = false, exeption exeption = null)
+            {
+                recipient = donor;
+                
+                if (deepCopy)
+                {
+                    if (exeption != null && exeption.isExeption(recipient.GetType(), null))
+                    {
+                        if (speaker != null) speaker.speak($"    {recipient.GetType()} is exeption");
+                    }
+                    else
+                    {
+                        if (donor != null)
+                        {
+                            if (speaker != null)
+                                speaker.speak("[");
+
+                            Array donorArray = (Array)(object)donor;
+
+                            ConstructorInfo[] constructors = recipient.GetType().GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                            foreach (ConstructorInfo constructor in constructors)
+                            {
+                                if (constructor.GetParameters().Length == 0)
+                                {
+                                    recipient = (type)constructor.Invoke(new object[] { donorArray.Length });
+                                    break;
+                                }
+                            }
+
+                            if (recipient != null)
+                            {
+                                Array recipArray = (Array)(object)recipient;
+
+                                object shadow_d;
+                                object shadow_r;
+
+                                for (int i = 0; i < donorArray.Length; ++i)
+                                {
+                                    shadow_d = donorArray.GetValue(i);
+                                    shadow_r = recipArray.GetValue(i);
+
+                                    if (shadow_d != null && speaker != null)
+                                        speaker.speak($"{shadow_d.GetType()}[{i}/{donorArray.Length - 1}]");
+
+                                    copyTo(ref shadow_d, ref shadow_r, deepCopy, speaker, copyPrivate, exeption);
+
+                                    recipArray.SetValue(shadow_r, i);
+                                }
+
+                                recipient = (type)(object)recipArray;
+                                if (speaker != null)
+                                    speaker.speak("");
+                            }
+                            else
+                                if (speaker != null)
+                                    speaker.speak($"    for {donor.GetType()} don't default constructor");
+
+                            if (speaker != null)
+                            {
+                                speaker.speak("]");
+                                speaker.speak("");
+                            }
+                        }
+                        else
+                            if (speaker != null)
+                                speaker.speak($"    for {donor.GetType()} is null");
+                    }
+                }
+            }
+            static void copyClass<type>(ref type donor, ref type recipient, bool deepCopy = false, speaker speaker = null, bool copyPrivate = false, exeption exeption = null)
+            {
+                recipient = donor;
+
+                if (deepCopy)
+                {
+                    if (exeption != null && exeption.isExeption(recipient.GetType(), null))
+                    {
+                        if (speaker != null) speaker.speak($"    {recipient.GetType()} is exeption");
+                    }
+                    else
+                    {
+                        if (donor != null)
+                        {
+                            ConstructorInfo[] constructors = recipient.GetType().GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                            foreach (ConstructorInfo constructor in constructors)
+                            {
+                                if (constructor.GetParameters().Length == 0)
+                                {
+                                    recipient = (type)constructor.Invoke(null);
+                                    break;
+                                }
+                            }
+                            
+                            if (recipient != null)
+                            {
+                                if (speaker != null)
+                                    speaker.speak("{");
+
+                                FieldInfo[] fieldsDonor = donor.GetType().GetFields(copyPrivate ? BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic : BindingFlags.Instance | BindingFlags.Public);
+                                FieldInfo[] fieldsRecip = recipient.GetType().GetFields(copyPrivate ? BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic : BindingFlags.Instance | BindingFlags.Public);
+
+                                for (int i = 0; i < fieldsDonor.Length; ++i)
+                                {
+                                    object shadow_d = fieldsDonor[i].GetValue(donor);
+                                    object shadow_r = fieldsRecip[i].GetValue(recipient);
+                                    Log.Message($"{recipient.GetType()}");
+                                    if (exeption != null && exeption.isExeption(fieldsDonor[i].FieldType, fieldsDonor[i].Name))
+                                    {
+                                        if (speaker != null) speaker.speak($"    {fieldsDonor[i].FieldType} {fieldsDonor[i].Name} is exeption");
+                                    }
+                                    else
+                                    {
+                                        if (speaker != null)
+                                            speaker.speak($"{fieldsDonor[i].Attributes} {fieldsDonor[i].FieldType} {fieldsDonor[i].Name}");
+
+                                        if (shadow_d != null && shadow_r != null)
+                                            copyTo(ref shadow_d, ref shadow_r, deepCopy, speaker, copyPrivate, exeption);
+
+                                        fieldsRecip[i].SetValue(recipient, shadow_r);
+                                    }
+                                }
+
+                                if (speaker != null)
+                                {
+                                    speaker.speak("}");
+                                    speaker.speak("");
+                                }
+                            }
+                            else
+                                if (speaker != null)
+                                    speaker.speak($"    for {donor.GetType().FullName} don't default constructor");
+                        }
+                        else
+                            if (speaker != null)
+                                speaker.speak($"    {donor.GetType().FullName} is null");
+
+                    }
+                }
+            }
+
+
+            /// <summary>
+            /// Сравнивает два объекта на схожесть. Объекты должны быль одинакового типа.
+            /// </summary>
+            /// <param name="frst"></param>
+            /// <param name="scnd"></param>
+            /// <returns></returns>
+            public static bool isEqual(object frst, object scnd)
+            {
+                if (frst != null)
+                {
+                    if (frst.GetType() == scnd.GetType())
+                    {
+                        if (frst.GetType().IsValueType)
+                            return isValueType(frst, scnd);
+                        else
+                        if (frst.GetType().IsArray)
+                            return isArray(frst, scnd);
+                        else
+                        if (frst.GetType().IsClass)
+                            return isClass(frst, scnd);
+                    }
+                }
+                else
+                    if (frst == null && scnd == null) return true;
+
+                return false;
+            }
+            static bool isValueType(object frst, object scnd)
+            {
+                if (!frst.Equals(scnd)) return false;
+
+                return true;
+            }
+            static bool isArray(object frst, object scnd)
+            {
+                Array arrayFrst = (Array)frst;
+                Array arrayScnd = (Array)scnd;
+
+                if (arrayFrst == null && arrayScnd == null) return true;
+                if (arrayFrst == null ^ arrayScnd == null) return false;
+                if (arrayFrst.Length != arrayScnd.Length) return false;
+                else
+                {
+                    for (int o = 0; o < arrayFrst.Length; ++o)
+                    {
+                        if (!isEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o))) return false;
+                    }
+
+                    return true;
+                }
+            }
+            static bool isClass(object frst, object scnd)
+            {
+
+                if (frst == null && scnd == null) return true;
+
+                FieldInfo[] infoFrst = frst.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                FieldInfo[] infoScnd = scnd.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                for (int i = 0; i < infoFrst.Length; ++i)
+                {
+                    if (infoFrst[i].GetValue(frst) != null && infoScnd[i].GetValue(scnd) != null)
+                        if (!isEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd))) return false;
+                }
+
+                return true;
+            }
+
+
+            public static void reportEqual(object frst, object scnd, speaker speaker = null)
+            {
+                if (frst.GetType() == scnd.GetType())
+                {
+                    if (frst.GetType().IsValueType && !isValueType(frst, scnd))
+                        reportValueType(frst, scnd, speaker);
+
+                    if (frst.GetType().IsArray && !isArray(frst, scnd))
+                        reportArray(frst, scnd, speaker);
+                    else
+                    if (frst.GetType().IsClass && !frst.GetType().IsArray && !isClass(frst, scnd))
+                        reportClass(frst, scnd, speaker);
+                }
+            }
+            static void reportValueType(object frst, object scnd, speaker speaker = null)
+            {
+                if (speaker != null)
+                    speaker.speak($"  {frst} != {scnd}");
+            }
+            static void reportArray(object frst, object scnd, speaker speaker = null)
+            {
+                Array arrayFrst = (Array)frst;
+                Array arrayScnd = (Array)scnd;
+
+
+                if (arrayFrst.Length == arrayScnd.Length)
+                {
+                    for (int o = 0; o < arrayFrst.Length; ++o)
+                    {
+                        if (!isEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o)))
+                        {
+                            if (speaker != null)
+                                speaker.speak($"  [{o}]");
+
+                            reportEqual(arrayFrst.GetValue(o), arrayScnd.GetValue(o), speaker);
+                        }
+                    }
+                }
+                else
+                    if (speaker != null)
+                        speaker.speak($"  [{arrayFrst.Length}] and [{arrayScnd.Length}]");
+            }
+            static void reportClass(object frst, object scnd, speaker speaker = null)
+            {
+
+                FieldInfo[] infoFrst = frst.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                FieldInfo[] infoScnd = scnd.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                for (int i = 0; i < infoFrst.Length; ++i)
+                {
+                    if (infoFrst[i].GetValue(frst) != null && infoScnd[i].GetValue(scnd) != null)
+                        if (!isEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd)))
+                        {
+                            if (speaker != null)
+                                speaker.speak($"{infoFrst[i].FieldType.FullName} {infoFrst[i].Name}");
+                            reportEqual(infoFrst[i].GetValue(frst), infoScnd[i].GetValue(scnd), speaker);
+                        }
+                }
+            }
+
+            public abstract class speaker
+            {
+                public virtual void speak(string text)
+                {
+
+                }
+            }
+
+            public class exeption
+            {
+                class _cell
+                {
+                    public string type = null;
+                    public string name = null;
+                }
+
+                List<_cell> _container = new List<_cell>();
+
+                public bool isExeption(Type type, string name)
+                {
+                    foreach (_cell buffer in _container)
+                    {
+                        if (buffer.type != null && buffer.name != null)
+                            if (buffer.type == type.ToString() && buffer.name == name)
+                                return true;
+
+                        if (buffer.type != null && buffer.name == null)
+                            if (buffer.type == type.ToString())
+                                return true;
+
+                        if (buffer.type == null && buffer.name != null)
+                            if (buffer.name == name)
+                                return true;
+                    }
+
+                    return false;
+                }
+
+                public void add(string type, string name)
+                {
+                    _cell buffer = new _cell();
+                    buffer.type = type;
+                    buffer.name = name;
+
+                    _container.Add(buffer);
+                }
+
+            }
+        }
+        public class log
+        {
+            string path = @"C:\log.txt";
+            StreamWriter writer;
+
+            public log(string path)
+            {
+                this.path = path;
+
+                writer = new StreamWriter(this.path, true);
+                if (!File.Exists(this.path)) File.Create(this.path);
+
+                writer.WriteLine($"/----{DateTime.Now}----/");
+                writer.Flush();
+            }
+            public log()
+            {
+                writer = new StreamWriter(path, true);
+                if (!File.Exists(path)) File.Create(path);
+
+                writer.WriteLine($"/----{DateTime.Now}----/");
+                writer.Flush();
+            }
+
+            public void write(string text)
+            {
+                writer.WriteLine(text);
+                writer.Flush();
+            }
+        }
+        ///<summary>
+        ///Следит за привязанной к нему переменной. Не корректно работает с ссылочными типами данных.
+        ///</summary>
+        public class checker<type>
+        {
+            type _value = default(type);
+            type _pastValue = default(type);
+
+            public checker(ref type value)
+            {
+                _value = value;
+            }
+            public bool check()
+            {
+                bool buffer = false;
+
+                if (_value.Equals(_pastValue)) buffer = true;
+
+                _pastValue = _value;
+                return buffer;
+            }
+        }
+
     }
 }

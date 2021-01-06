@@ -23,7 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -52,18 +52,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseGenoctome.cs" />
-    <Compile Include="genoctoms.cs" />
     <Compile Include="HediffCompProperties_Protista.cs" />
     <Compile Include="HediffComp_Protista.cs" />
     <Compile Include="HediffDefOfLocal.cs" />
     <Compile Include="perks.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="D:\Games\Data\Iz\Iz14_07\Iz14_07.csproj">
-      <Project>{b6d3cce9-3567-4ea7-9376-46f3eea97c9d}</Project>
-      <Name>Iz14_07</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,10 +1,6 @@
-﻿using RimWorld;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
+﻿using System;
 using Verse;
 using static Genoctome.BaseGenoctome;
-using static Iz14_07.reflection;
 
 namespace Genoctome
 {
@@ -14,7 +10,6 @@ namespace Genoctome
 
         public class Nutriculiosis_perk : perk
         {
-            
             public override void run(ref genoctome owner)
             {
                 --owner.Pawn.ageTracker.AgeBiologicalTicks;
@@ -82,22 +77,30 @@ namespace Genoctome
                     parentRecipient.def.hitPoints += 12;
                     Log.Message($" Neck.hit={BodyPartDefOf.Neck.hitPoints}, def={parentRecipient.def.hitPoints}");
                 }*/
+                log logger = new log();
+                reflection.exeption exeption = new reflection.exeption();
+                exeption.add(null ,"compClass");
+                exeption.add("System.Type", null);
+                speaker_withLog speaker = new speaker_withLog(logger);
 
-                speaker_withLog speaker = new speaker_withLog();
-
-                Log.Message($"type def is {owner.Pawn.def.GetType().Name}");
-                ThingDef buffer = null;
+                Log.Message($"type def is {owner.Pawn.def.GetType()}");
+                ThingDef buffer = (ThingDef)owner.Pawn.def.GetType().GetConstructor(Type.EmptyTypes).Invoke(null);
+                Log.Message($"type buffer is {buffer.GetType()}");
                 
-                copyTo(ref owner.Pawn.def, ref buffer, true, speaker);
+                reflection.copyTo(ref owner.Pawn.def, ref buffer, true, speaker, true, exeption);
                     Log.Message("set buffer");
 
-                    Log.Message("new ThingDef");
+                Log.Message(reflection.isEqual(owner.Pawn.def, buffer).ToString());
+                reflection.reportEqual(owner.Pawn.def, buffer, speaker);
+                
+                //owner.Pawn.def = new ThingDef();
 
-                copyTo(ref buffer, ref owner.Pawn.def, true, speaker);
-                    Log.Message("copy ThingDef");
+                //reflection.copyTo(ref buffer, ref owner.Pawn.def, true, speaker);
+                //Log.Message("copy ThingDef");
+                //Log.Message("/-----------------------------------------------------------------------------------------------------------------");
 
-                genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
-                    Log.Message("change hitHoints");
+                //genoctome.takeBodyPart(owner.Pawn, "Neck").def.hitPoints += 12;
+                //Log.Message("change hitHoints");
 
 
             }

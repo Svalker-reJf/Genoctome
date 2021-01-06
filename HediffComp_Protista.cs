@@ -18,7 +18,7 @@ namespace Genoctome
 
             gen.perkBook.add("Nutr", new perks.Nutriculiosis_perk(), true, true, true);
             gen.perkBook.add("PasReg", new perks.PassiveRegeneration_perk(), true, true, false);
-            gen.perkBook.add("FatNeck", new perks.FatNeck_perk(), true, true, false);
+            //gen.perkBook.add("FatNeck", new perks.FatNeck_perk(), true, true, false);
             gen.perkBook.report();
         }
 
